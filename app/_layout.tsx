@@ -1,4 +1,4 @@
-// import { ClerkProvider } from '@clerk/clerk-expo';
+import { ClerkProvider } from '@clerk/clerk-expo';
 import Constants from 'expo-constants';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
@@ -20,7 +20,7 @@ export default function RootLayout() {
   }
 
   return (
-    // <ClerkProvider publishableKey={Constants.expoConfig?.extra?.CLERK_PUBLISHABLE_KEY || process.env.CLERK_PUBLISHABLE_KEY}>
+    <ClerkProvider publishableKey={Constants.expoConfig?.extra?.CLERK_PUBLISHABLE_KEY || process.env.CLERK_PUBLISHABLE_KEY}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -28,6 +28,6 @@ export default function RootLayout() {
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>
-    // </ClerkProvider>
+    </ClerkProvider>
   );
 }

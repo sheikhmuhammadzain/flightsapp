@@ -1,83 +1,92 @@
-import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+
+import React, { useState } from 'react';
+import { ActivityIndicator, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+
+const RAPIDAPI_KEY = process.env['X-RapidAPI_Key'] || '';
 
 export default function FlightSearchHome() {
+  const [origin, setOrigin] = useState('LAXA');
+  const [destination, setDestination] = useState('LOND');
+  const [date, setDate] = useState('2024-04-11');
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState(null);
+  const [error, setError] = useState('');
+
+  const fetchFlights = async () => {
+    setLoading(true);
+    setError('');
+    setResults(null);
+    try {
+      const url = `https://sky-scrapper.p.rapidapi.com/api/v1/flights/getFlightDetails?legs=%5B%7B%22destination%22%3A%22${destination}%22%2C%22origin%22%3A%22${origin}%22%2C%22date%22%3A%22${date}%22%7D%5D&adults=1&currency=USD&locale=en-US&market=en-US&cabinClass=economy&countryCode=US`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'x-rapidapi-key': RAPIDAPI_KEY,
+          'x-rapidapi-host': 'sky-scrapper.p.rapidapi.com',
+        },
+      });
+      const data = await response.json();
+      setResults(data);
+    } catch (err) {
+      setError('Failed to fetch flights.');
+    }
+    setLoading(false);
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Flights</Text>
-      <View style={styles.searchBox}>
-        <View style={styles.row}>
-          <Text style={styles.label}>Round trip</Text>
-          <Text style={styles.label}>1</Text>
-          <Text style={styles.label}>Economy</Text>
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.title}>Flight Search</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Origin (e.g. LAXA)"
+        value={origin}
+        onChangeText={setOrigin}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Destination (e.g. LOND)"
+        value={destination}
+        onChangeText={setDestination}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Date (YYYY-MM-DD)"
+        value={date}
+        onChangeText={setDate}
+      />
+      <Button title="Search Flights" onPress={fetchFlights} disabled={loading} />
+      {loading && <ActivityIndicator style={{ marginTop: 20 }} />}
+      {error ? <Text style={{ color: 'red', marginTop: 20 }}>{error}</Text> : null}
+      {results && (
+        <View style={{ marginTop: 20 }}>
+          <Text style={{ fontWeight: 'bold' }}>Results:</Text>
+          <Text selectable style={{ fontSize: 12 }}>{JSON.stringify(results, null, 2)}</Text>
         </View>
-        <View style={styles.row}>
-          <TextInput style={styles.input} placeholder="Lahore" />
-          <TextInput style={styles.input} placeholder="Where to?" />
-        </View>
-        <View style={styles.row}>
-          <TextInput style={styles.input} placeholder="Departure" />
-          <TextInput style={styles.input} placeholder="Return" />
-        </View>
-        <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>Explore</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+      )}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    alignItems: 'center',
+    flexGrow: 1,
     justifyContent: 'center',
-    backgroundColor: '#222',
-    paddingTop: 40,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 20,
   },
   title: {
-    fontSize: 40,
-    color: '#fff',
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 30,
-  },
-  searchBox: {
-    backgroundColor: '#232323',
-    borderRadius: 16,
-    padding: 20,
-    width: '90%',
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  label: {
-    color: '#bbb',
-    fontSize: 16,
+    marginBottom: 20,
   },
   input: {
-    backgroundColor: '#333',
-    color: '#fff',
-    borderRadius: 8,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
     padding: 10,
-    marginHorizontal: 4,
-    flex: 1,
-  },
-  button: {
-    backgroundColor: '#6ea8fe',
-    borderRadius: 20,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  buttonText: {
-    color: '#222',
-    fontSize: 18,
-    fontWeight: 'bold',
+    marginBottom: 10,
+    fontSize: 16,
   },
 });
