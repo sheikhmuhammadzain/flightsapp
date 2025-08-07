@@ -1,33 +1,69 @@
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
-import React, { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 const RAPIDAPI_KEY = Constants.expoConfig?.extra?.RAPIDAPI_KEY || '';
+
+// Popular cities data with skyId and entityId for flight search
+const popularCities = [
+  { name: 'New York', code: 'NYC', country: 'USA', skyId: 'NYCA', entityId: '27537542' },
+  { name: 'London', code: 'LON', country: 'UK', skyId: 'LOND', entityId: '27544008' },
+  { name: 'Paris', code: 'PAR', country: 'France', skyId: 'PARI', entityId: '27539793' },
+  { name: 'Tokyo', code: 'TYO', country: 'Japan', skyId: 'TYOA', entityId: '27539587' },
+  { name: 'Los Angeles', code: 'LAX', country: 'USA', skyId: 'LAXA', entityId: '27536542' },
+  { name: 'Dubai', code: 'DXB', country: 'UAE', skyId: 'DXBA', entityId: '27539016' },
+  { name: 'Singapore', code: 'SIN', country: 'Singapore', skyId: 'SINA', entityId: '27537859' },
+  { name: 'Hong Kong', code: 'HKG', country: 'Hong Kong', skyId: 'HKGA', entityId: '27539289' },
+  { name: 'Sydney', code: 'SYD', country: 'Australia', skyId: 'SYDA', entityId: '27537471' },
+  { name: 'Mumbai', code: 'BOM', country: 'India', skyId: 'BOMA', entityId: '27539733' },
+  { name: 'Delhi', code: 'DEL', country: 'India', skyId: 'DELA', entityId: '27539018' },
+  { name: 'Bangkok', code: 'BKK', country: 'Thailand', skyId: 'BKKA', entityId: '27537542' },
+  { name: 'Amsterdam', code: 'AMS', country: 'Netherlands', skyId: 'AMSA', entityId: '27544125' },
+  { name: 'Frankfurt', code: 'FRA', country: 'Germany', skyId: 'FRAA', entityId: '27544266' },
+  { name: 'Barcelona', code: 'BCN', country: 'Spain', skyId: 'BCNA', entityId: '27540772' },
+  { name: 'Rome', code: 'ROM', country: 'Italy', skyId: 'ROMA', entityId: '27539793' },
+  { name: 'Istanbul', code: 'IST', country: 'Turkey', skyId: 'ISTA', entityId: '27544370' },
+  { name: 'Chicago', code: 'CHI', country: 'USA', skyId: 'CHIA', entityId: '27539587' },
+  { name: 'Miami', code: 'MIA', country: 'USA', skyId: 'MIAA', entityId: '27536799' },
+  { name: 'Toronto', code: 'YTO', country: 'Canada', skyId: 'YTOA', entityId: '27537859' },
+  { name: 'Melbourne', code: 'MEL', country: 'Australia', skyId: 'MELA', entityId: '27537471' },
+  { name: 'Seoul', code: 'SEL', country: 'South Korea', skyId: 'SELA', entityId: '27539289' },
+  { name: 'Berlin', code: 'BER', country: 'Germany', skyId: 'BERA', entityId: '27544266' },
+  { name: 'Madrid', code: 'MAD', country: 'Spain', skyId: 'MADA', entityId: '27540772' },
+  { name: 'Lisbon', code: 'LIS', country: 'Portugal', skyId: 'LISA', entityId: '27541733' },
+];
 
 
 export default function FlightSearchHome() {
   const [airportQuery, setAirportQuery] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [filteredCities, setFilteredCities] = useState(popularCities);
+
   const [airportResults, setAirportResults] = useState<{ name: string; city: string; skyId: string; entityId: string }[]>([]);
   const [airportLoading, setAirportLoading] = useState(false);
-  const [showCityDropdown, setShowCityDropdown] = useState(false);
 
-  // Popular cities for dropdown
-  const popularCities = [
-    'Lahore',
-    'Islamabad',
-    'Karachi',
-    'Dubai',
-    'London',
-    'New York',
-    'Jeddah',
-    'Doha',
-    'Bangkok',
-    'Istanbul',
-  ];
+  // Filter cities based on input
+  useEffect(() => {
+    if (airportQuery.trim() === '') {
+      setFilteredCities(popularCities);
+      setShowDropdown(false);
+    } else {
+      const filtered = popularCities.filter(city =>
+        city.name.toLowerCase().includes(airportQuery.toLowerCase()) ||
+        city.code.toLowerCase().includes(airportQuery.toLowerCase()) ||
+        city.country.toLowerCase().includes(airportQuery.toLowerCase())
+      );
+      setFilteredCities(filtered);
+      setShowDropdown(filtered.length > 0 && airportQuery.length > 0);
+    }
+  }, [airportQuery]);
 
   const searchAirport = async () => {
+    console.log('Search Airport called with query:', airportQuery);
     setAirportLoading(true);
     setAirportResults([]);
+    // Add delay to prevent rate limiting
+    await new Promise(resolve => setTimeout(resolve, 1500));
     try {
       const url = `https://sky-scrapper.p.rapidapi.com/api/v1/flights/searchAirport?query=${encodeURIComponent(airportQuery)}&locale=en-US`;
       const response = await fetch(url, {
@@ -35,11 +71,17 @@ export default function FlightSearchHome() {
         headers: {
           'x-rapidapi-key': RAPIDAPI_KEY,
           'x-rapidapi-host': 'sky-scrapper.p.rapidapi.com',
+          'User-Agent': 'MyFlightApp/1.0',
+          'Accept': 'application/json',
         },
       });
       const data = await response.json();
+      console.log('Airport Search API Response:', JSON.stringify(data, null, 2));
+      console.log('Setting airportResults with length:', data.data ? data.data.length : 0);
       setAirportResults(data.data || []);
-    } catch {
+      // Don't auto-set skyId and entityId here, let user choose from results
+    } catch (error) {
+      console.error('Airport search error:', error);
       setAirportResults([]);
     }
     setAirportLoading(false);
@@ -75,8 +117,8 @@ export default function FlightSearchHome() {
     setError('');
     setResults(null);
 
-    // Add a small delay to prevent rate limiting
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Add a longer delay to prevent rate limiting and avoid CAPTCHA
+    await new Promise(resolve => setTimeout(resolve, 3000));
 
     try {
       // Use searchFlights endpoint with BOTH SkyId and EntityId parameters
@@ -100,10 +142,11 @@ export default function FlightSearchHome() {
 
       const response = await fetch(url, {
         method: 'GET',
-        headers:
-         {
+        headers: {
           'x-rapidapi-key': RAPIDAPI_KEY,
           'x-rapidapi-host': 'sky-scrapper.p.rapidapi.com',
+          'User-Agent': 'MyFlightApp/1.0',
+          'Accept': 'application/json',
         },
       });
 
@@ -113,7 +156,7 @@ export default function FlightSearchHome() {
       // Show API error messages if present
       if (data.status === false) {
         if (data.message && data.message.action === 'captcha') {
-          setError('API rate limit reached. Please wait a few minutes and try again.');
+          setError('API CAPTCHA protection activated. This usually means too many requests. Please:\n• Wait 5-10 minutes before trying again\n• Check your RapidAPI plan limits\n• Consider upgrading your RapidAPI subscription');
         } else if (data.message) {
           setError(`API Error: ${JSON.stringify(data.message)} - Please check your airport codes and dates.`);
         } else {
@@ -148,33 +191,72 @@ export default function FlightSearchHome() {
       <View style={styles.airportSearchBox}>
         <Text style={styles.airportSearchLabel}>Search Airport by City or Name</Text>
         <View style={styles.inputRow}>
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, position: 'relative' }}>
             <TextInput
               style={styles.inputBox}
               placeholder="Enter city or airport name"
               value={airportQuery}
-              onChangeText={text => {
-                setAirportQuery(text);
-                setShowCityDropdown(text.length === 0);
+              onChangeText={setAirportQuery}
+              onFocus={() => {
+                if (airportQuery.trim() !== '') {
+                  setShowDropdown(filteredCities.length > 0);
+                }
               }}
+              onBlur={() => {
+                setTimeout(() => setShowDropdown(false), 200);
+              }}
+              onSubmitEditing={searchAirport}
               placeholderTextColor="#bbb"
-              onFocus={() => setShowCityDropdown(true)}
-              onBlur={() => setTimeout(() => setShowCityDropdown(false), 200)}
             />
-            {showCityDropdown && (
+            {/* City Dropdown */}
+            {showDropdown && (
               <View style={styles.cityDropdown}>
-                {popularCities.map((city, idx) => (
-                  <TouchableOpacity
-                    key={city + idx}
-                    style={styles.cityDropdownItem}
-                    onPress={() => {
-                      setAirportQuery(city);
-                      setShowCityDropdown(false);
-                    }}
-                  >
-                    <Text style={styles.cityDropdownText}>{city}</Text>
-                  </TouchableOpacity>
-                ))}
+                <FlatList
+                  data={filteredCities.slice(0, 8)}
+                  keyExtractor={(item) => item.code}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.cityDropdownItem}
+                      onPressIn={() => setShowDropdown(true)}
+                      onPress={async () => {
+                        setAirportQuery(item.name);
+                        setShowDropdown(false);
+                        // Trigger API call when city is selected from dropdown with the selected city name
+                        setTimeout(async () => {
+                          setAirportLoading(true);
+                          setAirportResults([]);
+                          await new Promise(resolve => setTimeout(resolve, 1500));
+                          try {
+                            const url = `https://sky-scrapper.p.rapidapi.com/api/v1/flights/searchAirport?query=${encodeURIComponent(item.name)}&locale=en-US`;
+                            const response = await fetch(url, {
+                              method: 'GET',
+                              headers: {
+                                'x-rapidapi-key': RAPIDAPI_KEY,
+                                'x-rapidapi-host': 'sky-scrapper.p.rapidapi.com',
+                                'User-Agent': 'MyFlightApp/1.0',
+                                'Accept': 'application/json',
+                              },
+                            });
+                            const data = await response.json();
+                            console.log('Dropdown Airport Search API Response:', JSON.stringify(data, null, 2));
+                            setAirportResults(data.data || []);
+                          } catch (error) {
+                            console.error('Airport search error:', error);
+                            setAirportResults([]);
+                          }
+                          setAirportLoading(false);
+                        }, 100);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.cityDropdownRow}>
+                        <Text style={styles.cityName}>{item.name}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  )}
+                  showsVerticalScrollIndicator={false}
+                  nestedScrollEnabled={true}
+                />
               </View>
             )}
           </View>
@@ -188,18 +270,29 @@ export default function FlightSearchHome() {
         )}
         {airportResults.length > 0 && (
           <View style={styles.airportResultsBox}>
+            <Text style={styles.airportSearchLabel}>Search Results:</Text>
             {airportResults.map((airport, idx) => (
               <View key={airport.skyId + airport.entityId + idx} style={styles.airportResultRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.airportResultName}>{airport.name}</Text>
                   <Text style={styles.airportResultDetails}>{airport.city} | SkyId: {airport.skyId} | EntityId: {airport.entityId}</Text>
                 </View>
-                <TouchableOpacity style={styles.setBtn} onPress={() => { setOriginSkyId(airport.skyId); setOriginEntityId(airport.entityId); }}>
-                  <Text style={styles.setBtnText}>Set Origin</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.setBtn} onPress={() => { setDestinationSkyId(airport.skyId); setDestinationEntityId(airport.entityId); }}>
-                  <Text style={styles.setBtnText}>Set Destination</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <TouchableOpacity style={styles.setBtn} onPress={() => { 
+                    console.log('Setting Origin:', airport.skyId, airport.entityId);
+                    setOriginSkyId(airport.skyId); 
+                    setOriginEntityId(airport.entityId); 
+                  }}>
+                    <Text style={styles.setBtnText}>Set Origin</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.setBtn} onPress={() => { 
+                    console.log('Setting Destination:', airport.skyId, airport.entityId);
+                    setDestinationSkyId(airport.skyId); 
+                    setDestinationEntityId(airport.entityId); 
+                  }}>
+                    <Text style={styles.setBtnText}>Set Destination</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             ))}
           </View>
@@ -302,32 +395,6 @@ export default function FlightSearchHome() {
 }
 
 const styles = StyleSheet.create({
-  cityDropdown: {
-    position: 'absolute',
-    top: 54,
-    left: 0,
-    right: 0,
-    backgroundColor: '#23242a',
-    borderRadius: 12,
-    zIndex: 100,
-    shadowColor: '#000',
-    shadowOpacity: 0.16,
-    shadowRadius: 8,
-    elevation: 8,
-    borderWidth: 1,
-    borderColor: '#222',
-    maxHeight: 220,
-  },
-  cityDropdownItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: '#181A20',
-  },
-  cityDropdownText: {
-    color: '#fff',
-    fontSize: 16,
-  },
   airportDropdown: {
     position: 'absolute',
     top: 70,
@@ -637,5 +704,51 @@ const styles = StyleSheet.create({
     color: '#222',
     fontSize: 13,
     fontWeight: 'bold',
+  },
+  // City dropdown styles
+  cityDropdown: {
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
+    backgroundColor: '#23242a',
+    borderRadius: 16,
+    paddingVertical: 8,
+    zIndex: 1000,
+    shadowColor: '#000',
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    elevation: 8,
+    maxHeight: 350,
+    borderWidth: 1,
+    borderColor: '#444',
+  },
+  cityDropdownItem: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#181A20',
+    backgroundColor: 'transparent',
+  },
+  cityDropdownRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+  },
+  cityName: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  cityDetails: {
+    color: '#bbb',
+    fontSize: 13,
+    marginTop: 2,
+  },
+  cityIdsText: {
+    color: '#888',
+    fontSize: 11,
+    marginTop: 1,
+    fontStyle: 'italic',
   },
 });

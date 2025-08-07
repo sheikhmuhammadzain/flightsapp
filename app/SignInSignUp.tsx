@@ -243,20 +243,18 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   buttonModern: {
-    backgroundColor: '#6ea8fe',
+    backgroundColor: '#181A20',
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 10,
     marginBottom: 18,
     width: '100%',
-    shadowColor: '#6ea8fe',
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
     elevation: 4,
+    
   },
   buttonModernText: {
-    color: '#222',
+    color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
     letterSpacing: 0.5,
