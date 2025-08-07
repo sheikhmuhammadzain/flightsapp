@@ -1,36 +1,29 @@
-
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import React, { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-// ...existing code...
 const RAPIDAPI_KEY = Constants.expoConfig?.extra?.RAPIDAPI_KEY || '';
 
 
 export default function FlightSearchHome() {
   const [airportQuery, setAirportQuery] = useState('');
-  const [airportResults, setAirportResults] = useState<Array<{ name: string; city: string; skyId: string; entityId: string }>>([]);
+  const [airportResults, setAirportResults] = useState<{ name: string; city: string; skyId: string; entityId: string }[]>([]);
   const [airportLoading, setAirportLoading] = useState(false);
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
 
-  // Test API key function
-  const testAPIKey = async () => {
-    try {
-      const url = `https://sky-scrapper.p.rapidapi.com/api/v1/flights/searchAirport?query=london&locale=en-US`;
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'x-rapidapi-key': RAPIDAPI_KEY,
-          'x-rapidapi-host': 'sky-scrapper.p.rapidapi.com',
-        },
-      });
-      const data = await response.json();
-      console.log('API Key Test:', data.status !== false ? 'WORKING' : 'ISSUE');
-      return data.status !== false;
-    } catch (error) {
-      console.log('API Key Test Failed:', error);
-      return false;
-    }
-  };
+  // Popular cities for dropdown
+  const popularCities = [
+    'Lahore',
+    'Islamabad',
+    'Karachi',
+    'Dubai',
+    'London',
+    'New York',
+    'Jeddah',
+    'Doha',
+    'Bangkok',
+    'Istanbul',
+  ];
 
   const searchAirport = async () => {
     setAirportLoading(true);
@@ -46,7 +39,7 @@ export default function FlightSearchHome() {
       });
       const data = await response.json();
       setAirportResults(data.data || []);
-    } catch (err) {
+    } catch {
       setAirportResults([]);
     }
     setAirportLoading(false);
@@ -107,7 +100,8 @@ export default function FlightSearchHome() {
 
       const response = await fetch(url, {
         method: 'GET',
-        headers: {
+        headers:
+         {
           'x-rapidapi-key': RAPIDAPI_KEY,
           'x-rapidapi-host': 'sky-scrapper.p.rapidapi.com',
         },
@@ -116,6 +110,7 @@ export default function FlightSearchHome() {
       const data = await response.json();
       console.log('API Response:', JSON.stringify(data, null, 2));
 
+      // Show API error messages if present
       if (data.status === false) {
         if (data.message && data.message.action === 'captcha') {
           setError('API rate limit reached. Please wait a few minutes and try again.');
@@ -125,6 +120,12 @@ export default function FlightSearchHome() {
           setError('No flights found for your search criteria.');
         }
         setResults(data); // Still set results to see the full response
+      } else if (data.data && data.data.messages && data.data.messages.length > 0) {
+        setError(`API Message: ${data.data.messages.join(' ')} - Try different search criteria.`);
+        setResults(data);
+      } else if (data.data && data.data.context && data.data.context.status && data.data.context.status !== 'complete') {
+        setError(`API Context Status: ${data.data.context.status}. Try changing your search criteria.`);
+        setResults(data);
       } else {
         setResults(data);
       }
@@ -138,101 +139,120 @@ export default function FlightSearchHome() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.iconContainer}>
-          <Ionicons name="airplane" size={50} color="#fff" />
-        </View>
-        <Text style={styles.title}>My Flight App</Text>
-        <Text style={styles.subtitle}>Find and book the best flights worldwide</Text>
+      {/* Large header illustration and title */}
+      <View style={styles.hero}>
+        <Text style={styles.heroTitle}>Flights</Text>
       </View>
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
 
-          <Text style={styles.cardTitle}>Search Airport</Text>
-        </View>
-        <View style={styles.row}>
-          <TextInput
-            style={styles.input}
-            placeholder="Type airport or city name..."
-            placeholderTextColor="#888"
-            value={airportQuery}
-            onChangeText={setAirportQuery}
-          />
-          <TouchableOpacity style={styles.searchButton} onPress={searchAirport} disabled={airportLoading}>
-            <Ionicons name="search" size={20} color="#fff" />
+      {/* Airport search section */}
+      <View style={styles.airportSearchBox}>
+        <Text style={styles.airportSearchLabel}>Search Airport by City or Name</Text>
+        <View style={styles.inputRow}>
+          <View style={{ flex: 1 }}>
+            <TextInput
+              style={styles.inputBox}
+              placeholder="Enter city or airport name"
+              value={airportQuery}
+              onChangeText={text => {
+                setAirportQuery(text);
+                setShowCityDropdown(text.length === 0);
+              }}
+              placeholderTextColor="#bbb"
+              onFocus={() => setShowCityDropdown(true)}
+              onBlur={() => setTimeout(() => setShowCityDropdown(false), 200)}
+            />
+            {showCityDropdown && (
+              <View style={styles.cityDropdown}>
+                {popularCities.map((city, idx) => (
+                  <TouchableOpacity
+                    key={city + idx}
+                    style={styles.cityDropdownItem}
+                    onPress={() => {
+                      setAirportQuery(city);
+                      setShowCityDropdown(false);
+                    }}
+                  >
+                    <Text style={styles.cityDropdownText}>{city}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+          <TouchableOpacity style={styles.airportSearchBtn} onPress={searchAirport} disabled={airportLoading}>
+            <Ionicons name="search" size={20} color="white" />
+            <Text style={styles.airportSearchBtnText}>Search</Text>
           </TouchableOpacity>
         </View>
-        {airportLoading && <ActivityIndicator style={{ marginTop: 10 }} color="#6ea8fe" />}
+        {airportLoading && (
+          <ActivityIndicator size="small" color="#6ea8fe" style={{ marginTop: 8 }} />
+        )}
         {airportResults.length > 0 && (
-          <View style={styles.resultsBox}>
-            <Text style={{ color: '#fff', fontWeight: 'bold', marginBottom: 4 }}>Results:</Text>
-            {airportResults.map((a, idx) => (
-              <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                <Text style={{ color: '#fff', fontSize: 12, flex: 1 }}>
-                  {a.name} ({a.city}) - SkyId: {a.skyId}, EntityId: {a.entityId}
-                </Text>
-                <TouchableOpacity
-                  style={[styles.button, { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 10, backgroundColor: '#6ea8fe', marginLeft: 8 }]}
-                  onPress={() => {
-                    setOriginSkyId(a.skyId);
-                    setOriginEntityId(a.entityId);
-                  }}
-                >
-                  <Text style={{ color: '#222', fontWeight: 'bold', fontSize: 12 }}>Set Origin</Text>
+          <View style={styles.airportResultsBox}>
+            {airportResults.map((airport, idx) => (
+              <View key={airport.skyId + airport.entityId + idx} style={styles.airportResultRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.airportResultName}>{airport.name}</Text>
+                  <Text style={styles.airportResultDetails}>{airport.city} | SkyId: {airport.skyId} | EntityId: {airport.entityId}</Text>
+                </View>
+                <TouchableOpacity style={styles.setBtn} onPress={() => { setOriginSkyId(airport.skyId); setOriginEntityId(airport.entityId); }}>
+                  <Text style={styles.setBtnText}>Set Origin</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.button, { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 10, backgroundColor: '#6ea8fe', marginLeft: 4 }]}
-                  onPress={() => {
-                    setDestinationSkyId(a.skyId);
-                    setDestinationEntityId(a.entityId);
-                  }}
-                >
-                  <Text style={{ color: '#222', fontWeight: 'bold', fontSize: 12 }}>Set Destination</Text>
+                <TouchableOpacity style={styles.setBtn} onPress={() => { setDestinationSkyId(airport.skyId); setDestinationEntityId(airport.entityId); }}>
+                  <Text style={styles.setBtnText}>Set Destination</Text>
                 </TouchableOpacity>
               </View>
             ))}
           </View>
         )}
       </View>
+
       <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Ionicons name="airplane-outline" size={24} color="#6ea8fe" />
-          <Text style={styles.cardTitle}>Flight Search</Text>
+        <View style={styles.cardRow}>
+          <Ionicons name="person" size={20} color="#bbb" style={{ marginHorizontal: 8 }} />
+          <Text style={styles.cardLabel}>{adults}</Text>
+          <Ionicons name="briefcase" size={20} color="#bbb" style={{ marginHorizontal: 8 }} />
+          <Text style={styles.cardLabel}>{cabinClass.charAt(0).toUpperCase() + cabinClass.slice(1)}</Text>
         </View>
-        <Text style={styles.hint}>
-          💡 Use airport search above to get valid codes
-        </Text>
-        <View style={styles.row}>
-          <TextInput style={styles.input} placeholder="Origin SkyId (e.g. LOND)" placeholderTextColor="#bbb" value={originSkyId} onChangeText={setOriginSkyId} />
-          <TextInput style={styles.input} placeholder="Destination SkyId (e.g. NYCA)" placeholderTextColor="#bbb" value={destinationSkyId} onChangeText={setDestinationSkyId} />
+        <View style={styles.inputRow}>
+          <TextInput style={styles.inputBox} placeholder="Origin City or SkyId" value={originSkyId} onChangeText={setOriginSkyId} placeholderTextColor="#bbb" />
+          <TouchableOpacity onPress={() => {
+            // Swap origin and destination SkyId and EntityId
+            const tempSkyId = originSkyId;
+            const tempEntityId = originEntityId;
+            setOriginSkyId(destinationSkyId);
+            setOriginEntityId(destinationEntityId);
+            setDestinationSkyId(tempSkyId);
+            setDestinationEntityId(tempEntityId);
+          }}>
+            <Ionicons name="swap-horizontal" size={24} color="#bbb" style={{ marginHorizontal: 8 }} />
+          </TouchableOpacity>
+          <TextInput style={styles.inputBox} placeholder="Destination City or SkyId" value={destinationSkyId} onChangeText={setDestinationSkyId} placeholderTextColor="#bbb" />
         </View>
-        <View style={styles.row}>
-          <TextInput style={styles.input} placeholder="Origin EntityId (e.g. 27544008)" placeholderTextColor="#bbb" value={originEntityId} onChangeText={setOriginEntityId} />
-          <TextInput style={styles.input} placeholder="Destination EntityId (e.g. 27537542)" placeholderTextColor="#bbb" value={destinationEntityId} onChangeText={setDestinationEntityId} />
+        <View style={styles.inputRow}>
+          <TextInput style={styles.inputBox} placeholder="Departure (YYYY-MM-DD)" value={date} onChangeText={setDate} placeholderTextColor="#bbb" />
+          <TextInput style={styles.inputBox} placeholder="Return (YYYY-MM-DD)" value={returnDate} onChangeText={setReturnDate} placeholderTextColor="#bbb" />
         </View>
-        <View style={styles.row}>
-          <TextInput style={styles.input} placeholder="Departure (YYYY-MM-DD)" placeholderTextColor="#bbb" value={date} onChangeText={setDate} />
-          <TextInput style={styles.input} placeholder="Return (YYYY-MM-DD)" placeholderTextColor="#bbb" value={returnDate} onChangeText={setReturnDate} />
+        <View style={styles.inputRow}>
+          <TextInput style={styles.inputBox} placeholder="Origin EntityId" value={originEntityId} onChangeText={setOriginEntityId} placeholderTextColor="#bbb" />
+          <TextInput style={styles.inputBox} placeholder="Destination EntityId" value={destinationEntityId} onChangeText={setDestinationEntityId} placeholderTextColor="#bbb" />
         </View>
-        <View style={styles.row}>
-          <TextInput style={styles.inputSmall} placeholder="Adults" placeholderTextColor="#bbb" value={adults} onChangeText={setAdults} keyboardType="numeric" />
-          <TextInput style={styles.inputSmall} placeholder="Cabin" placeholderTextColor="#bbb" value={cabinClass} onChangeText={setCabinClass} />
+        <View style={styles.inputRow}>
+          <TextInput style={styles.inputBox} placeholder="Adults" value={adults} onChangeText={setAdults} keyboardType="numeric" placeholderTextColor="#bbb" />
+          <TextInput style={styles.inputBox} placeholder="Cabin Class" value={cabinClass} onChangeText={setCabinClass} placeholderTextColor="#bbb" />
         </View>
-        <TouchableOpacity style={styles.button} onPress={fetchFlights} disabled={loading}>
-          <Ionicons name="search" size={20} color="#fff" />
-          <Text style={styles.buttonText}>Search Flights</Text>
+        <TouchableOpacity style={styles.searchBtn} onPress={fetchFlights} disabled={loading}>
+          <Ionicons name="search" size={20} color="white" />
+          <Text style={styles.searchBtnText}>Search</Text>
         </TouchableOpacity>
-
-     
-
       </View>
+
+      {/* Results and error handling remain unchanged below */}
       {loading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6ea8fe" />
           <Text style={styles.loadingText}>Searching flights...</Text>
         </View>
       )}
-
       {error ? (
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle" size={24} color="#ff6b6b" />
@@ -241,90 +261,38 @@ export default function FlightSearchHome() {
       ) : null}
       {results && (
         <View style={styles.resultsBox}>
-          <View style={styles.cardHeader}>
-            <Ionicons name="airplane" size={24} color="#6ea8fe" />
-            <Text style={styles.cardTitle}>Flight Results</Text>
-          </View>
-          {results.data && results.data.itineraries && results.data.itineraries.length > 0 ? (
-            <>
-              <Text style={{ color: '#333', fontSize: 16, marginBottom: 12, fontWeight: '600' }}>
-                Found {results.data.itineraries.length} flights
-              </Text>
-              {results.data.itineraries.slice(0, 5).map((itinerary: any, idx: number) => {
-                const leg = itinerary.legs?.[0];
-                const carrier = leg?.carriers?.[0];
-                const segments = leg?.segments || [];
-
-                return (
-                  <View key={idx} style={{ backgroundColor: '#333', padding: 12, marginBottom: 8, borderRadius: 8 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Text style={{ color: '#6ea8fe', fontWeight: 'bold', fontSize: 16 }}>
-                        {carrier?.name || `Flight ${idx + 1}`}
-                      </Text>
-                      <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
-                        {itinerary.price?.formatted || 'N/A'}
-                      </Text>
-                    </View>
-
-                    <View style={{ marginTop: 8 }}>
-                      <Text style={{ color: '#bbb', fontSize: 12 }}>
-                        ⏱️ Duration: {leg?.durationInMinutes ? `${Math.floor(leg.durationInMinutes / 60)}h ${leg.durationInMinutes % 60}m` : leg?.duration || 'N/A'}
-                      </Text>
-                      <Text style={{ color: '#bbb', fontSize: 12, marginTop: 2 }}>
-                        ✈️ {leg?.stopCount === 0 ? 'Direct flight' : `${leg?.stopCount} stop${leg?.stopCount > 1 ? 's' : ''}`}
-                      </Text>
-
-                      {leg?.departure && leg?.arrival && (
-                        <Text style={{ color: '#bbb', fontSize: 12, marginTop: 2 }}>
-                          🕐 {leg.departure.split('T')[1]?.substring(0, 5)} → {leg.arrival.split('T')[1]?.substring(0, 5)}
-                        </Text>
-                      )}
-
-                      {segments.length > 0 && (
-                        <Text style={{ color: '#bbb', fontSize: 11, marginTop: 2 }}>
-                          Route: {segments.map((seg: any) => `${seg.origin?.displayCode || seg.originPlace?.iata}-${seg.destination?.displayCode || seg.destinationPlace?.iata}`).join(' → ')}
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-                );
-              })}
-            </>
-          ) : results.data && Array.isArray(results.data) && results.data.length > 0 ? (
-            // Handle different response format
-            <>
-              <Text style={{ color: '#6ea8fe', fontSize: 14, marginBottom: 8 }}>
-                Found {results.data.length} flights
-              </Text>
-              {results.data.slice(0, 5).map((flight: any, idx: number) => (
-                <View key={idx} style={{ backgroundColor: '#333', padding: 12, marginBottom: 8, borderRadius: 8 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={{ color: '#6ea8fe', fontWeight: 'bold', fontSize: 16 }}>
-                      {flight.airline || flight.carriers?.[0]?.name || `Flight ${idx + 1}`}
-                    </Text>
-                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
-                      {flight.price?.formatted || flight.price || 'N/A'}
-                    </Text>
-                  </View>
-
-                  <View style={{ marginTop: 8 }}>
-                    <Text style={{ color: '#bbb', fontSize: 12 }}>
-                      ⏱️ Duration: {flight.duration || 'N/A'}
-                    </Text>
-                    <Text style={{ color: '#bbb', fontSize: 12, marginTop: 2 }}>
-                      ✈️ {flight.stops === 0 || flight.direct ? 'Direct flight' : `${flight.stops} stops`}
-                    </Text>
-                  </View>
+          {results && results.data && Array.isArray(results.data) && results.data.length > 0 ? (
+            results.data.map((flight: any, idx: number) => (
+              <View key={flight.id || idx} style={styles.flightResultCard}>
+                <View style={styles.flightRow}>
+                  <Text style={styles.flightAirline}>{flight.airlineName || flight.airline || 'Unknown Airline'}</Text>
+                  <Text style={styles.flightPrice}>{flight.price ? `$${flight.price}` : 'Price N/A'}</Text>
                 </View>
-              ))}
-            </>
+                <View style={styles.flightRow}>
+                  <Text style={styles.flightTime}>{flight.departureTime || flight.departure || 'Dep N/A'}</Text>
+                  <Ionicons name="arrow-forward" size={18} color="#6ea8fe" style={{ marginHorizontal: 8 }} />
+                  <Text style={styles.flightTime}>{flight.arrivalTime || flight.arrival || 'Arr N/A'}</Text>
+                </View>
+                <View style={styles.flightRow}>
+                  <Text style={styles.flightAirport}>{flight.originAirport || flight.origin || 'Origin N/A'}</Text>
+                  <Text style={styles.flightAirport}>{flight.destinationAirport || flight.destination || 'Dest N/A'}</Text>
+                </View>
+                {flight.duration && (
+                  <Text style={styles.flightDuration}>Duration: {flight.duration}</Text>
+                )}
+              </View>
+            ))
           ) : (
-            <View style={{ backgroundColor: '#333', padding: 16, borderRadius: 8 }}>
-              <Text style={{ color: '#fff', fontSize: 14, textAlign: 'center' }}>
-                No flight data available. Try adjusting your search criteria.
+            <View style={{alignItems: 'center', justifyContent: 'center', padding: 24}}>
+              <Ionicons name="airplane" size={48} color="#6ea8fe" style={{marginBottom: 12}} />
+              <Text style={styles.noFlightsText}>
+                {results && results.data && Array.isArray(results.data) && results.data.length === 0
+                  ? 'No flights found. Try changing your dates, airports, or passenger count.'
+                  : 'No valid flight data received. Please check your search and try again.'}
               </Text>
-              {/* Debug: Show raw API response */}
-              <Text selectable style={{ fontSize: 10, color: '#bbb', marginTop: 10 }}>{JSON.stringify(results, null, 2)}</Text>
+              <Text style={{color: '#bbb', fontSize: 14, marginTop: 8, textAlign: 'center'}}>
+                Tip: Popular routes and future dates are more likely to show results.
+              </Text>
             </View>
           )}
         </View>
@@ -334,175 +302,230 @@ export default function FlightSearchHome() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    backgroundColor: '#667eea',
-    alignItems: 'center',
-    paddingTop: 40,
-    paddingHorizontal: 0,
-    minHeight: '100%',
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  iconContainer: {
-    backgroundColor: '#6ea8fe',
-    borderRadius: 50,
-    padding: 15,
-    marginBottom: 15,
+  cityDropdown: {
+    position: 'absolute',
+    top: 54,
+    left: 0,
+    right: 0,
+    backgroundColor: '#23242a',
+    borderRadius: 12,
+    zIndex: 100,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.16,
     shadowRadius: 8,
     elevation: 8,
+    borderWidth: 1,
+    borderColor: '#222',
+    maxHeight: 220,
   },
-  title: {
-    fontSize: 42,
+  cityDropdownItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: '#181A20',
+  },
+  cityDropdownText: {
     color: '#fff',
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  subtitle: {
     fontSize: 16,
-    color: '#e0e6ff',
-    marginBottom: 20,
-    textAlign: 'center',
   },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 24,
-    width: '90%',
+  airportDropdown: {
+    position: 'absolute',
+    top: 70,
+    left: 0,
+    right: 0,
+    backgroundColor: '#23242a',
+    borderRadius: 16,
+    paddingVertical: 6,
+    zIndex: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.16,
     shadowRadius: 12,
     elevation: 8,
-    marginBottom: 20,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginLeft: 10,
-  },
-  hint: {
-    color: '#666',
-    fontSize: 14,
-    marginBottom: 16,
-    fontStyle: 'italic',
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  label: {
-    color: '#666',
-    fontSize: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  input: {
-    backgroundColor: '#f8f9fa',
-    color: '#333',
-    borderRadius: 12,
-    padding: 14,
-    marginHorizontal: 4,
-    flex: 1,
-    fontSize: 16,
+    maxHeight: 320,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: '#222',
   },
-  inputSmall: {
-    backgroundColor: '#f8f9fa',
-    color: '#333',
-    borderRadius: 12,
-    padding: 10,
-    marginHorizontal: 4,
-    fontSize: 14,
-    borderWidth: 1,
-    borderColor: '#e9ecef',
-    width: 80,
-  },
-  searchButton: {
-    backgroundColor: '#6ea8fe',
-    borderRadius: 12,
-    padding: 14,
-    marginLeft: 8,
-    shadowColor: '#6ea8fe',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  button: {
-    flexDirection: 'row',
-    backgroundColor: '#6ea8fe',
-    borderRadius: 16,
+  airportDropdownItem: {
     paddingVertical: 14,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-    shadowColor: '#6ea8fe',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 6,
+    paddingHorizontal: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: '#181A20',
   },
-  buttonRow: {
+  airportDropdownRow: {
     flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+  },
+  flightResultCard: {
+    backgroundColor: '#181A20',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  flightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 8,
+    marginBottom: 6,
   },
-  secondaryButton: {
-    backgroundColor: '#28a745',
-    flex: 1,
-    marginRight: 8,
+  flightAirline: {
+    color: '#6ea8fe',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
-  warningButton: {
-    backgroundColor: '#ffc107',
-    flex: 1,
-    marginLeft: 8,
-  },
-  buttonText: {
+  flightPrice: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-    marginLeft: 8,
   },
-  resultsBox: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    marginTop: 20,
-    width: '90%',
+  flightTime: {
+    color: '#bbb',
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  flightAirport: {
+    color: '#bbb',
+    fontSize: 13,
+    fontWeight: '400',
+  },
+  flightDuration: {
+    color: '#fff',
+    fontSize: 13,
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  noFlightsText: {
+    color: '#bbb',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  container: {
+    flexGrow: 1,
+    backgroundColor: '#181A20',
+    alignItems: 'center',
+    paddingTop: 32,
+    minHeight: '100%',
+    width: '100%',
+    paddingHorizontal: 0,
+  },
+  hero: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 0,
+    marginTop: 0,
+    paddingHorizontal: 0,
+  },
+  heroArt: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#23242a',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    alignItems: 'flex-end',
+    justifyContent: 'flex-start',
+    position: 'relative',
+    marginBottom: 0,
+  },
+  heroTitle: {
+    fontSize: 36,
+    color: '#fff',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: -24,
+    marginBottom: 18,
+    letterSpacing: 1,
+    width: '100%',
+  },
+  card: {
+    backgroundColor: '#23242a',
+    borderRadius: 18,
+    padding: 18,
+    width: '100%',
+    maxWidth: 480,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 8,
+    marginBottom: 24,
+    alignItems: 'center',
+    alignSelf: 'center',
+  },
+  cardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    width: '100%',
+    justifyContent: 'flex-start',
+    flexWrap: 'wrap',
+  },
+  cardLabel: {
+    color: '#bbb',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginRight: 8,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    width: '100%',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  inputBox: {
+    backgroundColor: '#181A20',
+    color: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 15,
+    borderWidth: 1,
+    borderColor: '#444',
+    flex: 1,
+    marginHorizontal: 2,
+    minWidth: 0,
+    maxWidth: '100%',
+  },
+  searchBtn: {
+    backgroundColor: '#181A20',
+    borderRadius: 24,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 14,
+    width: '80%',
+    alignSelf: 'center',
+    flexDirection: 'row',
+    minWidth: 180,
+    maxWidth: 340,
+  },
+  searchBtnText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginLeft: 8,
   },
   loadingContainer: {
     alignItems: 'center',
-    marginTop: 30,
-    backgroundColor: '#fff',
+    marginTop: 24,
+    backgroundColor: '#23242a',
     borderRadius: 16,
-    padding: 24,
-    width: '90%',
+    padding: 18,
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#333',
+    color: '#fff',
     fontWeight: '500',
   },
   errorContainer: {
@@ -510,14 +533,109 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#ffe6e6',
     borderRadius: 12,
-    padding: 16,
-    marginTop: 20,
-    width: '90%',
+    padding: 12,
+    marginTop: 16,
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
   },
   errorText: {
     color: '#d32f2f',
     fontSize: 14,
     marginLeft: 8,
     flex: 1,
+  },
+  resultsBox: {
+    backgroundColor: '#23242a',
+    borderRadius: 16,
+    padding: 14,
+    marginTop: 16,
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  airportSearchBox: {
+    backgroundColor: '#23242a',
+    borderRadius: 16,
+    padding: 12,
+    marginTop: 12,
+    marginBottom: 8,
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 3,
+    zIndex: 20,
+  },
+  airportSearchLabel: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  airportSearchBtn: {
+    backgroundColor: '#181A20',
+    borderRadius: 18,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+    flexDirection: 'row',
+  },
+  airportSearchBtnText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 6,
+  },
+  airportResultsBox: {
+    marginTop: 12,
+    backgroundColor: '#181A20',
+    borderRadius: 12,
+    padding: 8,
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
+  },
+  airportResultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#23242a',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  airportResultName: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  airportResultDetails: {
+    color: '#bbb',
+    fontSize: 13,
+  },
+  setBtn: {
+    backgroundColor: '#6ea8fe',
+    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    marginLeft: 8,
+    marginTop: 4,
+    minWidth: 90,
+    alignItems: 'center',
+  },
+  setBtnText: {
+    color: '#222',
+    fontSize: 13,
+    fontWeight: 'bold',
   },
 });

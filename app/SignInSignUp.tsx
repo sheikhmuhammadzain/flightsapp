@@ -115,49 +115,52 @@ export default function SignInSignUpScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>My Flight App</Text>
-        <Text style={styles.subtitle}>
-          {isSigningIn ? 'Sign in to your account' : 'Create a new account'}
-        </Text>
-
+      {/* Background illustration placeholder */}
+      <View>
+        {/* You can replace this with an SVG or image for mountains/plane */}
+      </View>
+      <View style={styles.headerBox}>
+        <Text style={styles.headerTitle}>Flights</Text>
+      </View>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>{isSigningIn ? 'Sign In' : 'Sign Up'}</Text>
+        <Text style={styles.cardSubtitle}>{isSigningIn ? 'Access your account to search flights' : 'Create an account to get started'}</Text>
+        <View style={styles.divider} />
         {!isSigningIn && (
           <Text style={styles.passwordHint}>
             Password must be 8+ characters, unique, and not found in data breaches
           </Text>
         )}
-
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor="#666"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoComplete="email"
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor="#666"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoComplete="password"
-        />
-
+        <View style={styles.inputGroup}>
+          <TextInput
+            style={styles.inputModern}
+            placeholder="Email"
+            placeholderTextColor="#bbb"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+          />
+          <TextInput
+            style={styles.inputModern}
+            placeholder="Password"
+            placeholderTextColor="#bbb"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoComplete="password"
+          />
+        </View>
         <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
+          style={[styles.buttonModern, loading && styles.buttonDisabled]}
           onPress={isSigningIn ? handleSignIn : handleSignUp}
           disabled={loading}
         >
-          <Text style={styles.buttonText}>
+          <Text style={styles.buttonModernText}>
             {loading ? 'Loading...' : (isSigningIn ? 'Sign In' : 'Sign Up')}
           </Text>
         </TouchableOpacity>
-
         <TouchableOpacity
           style={styles.switchButton}
           onPress={() => {
@@ -179,54 +182,127 @@ export default function SignInSignUpScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0066CC',
+    backgroundColor: '#181A20',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
   },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 30,
-    paddingBottom: 50,
+
+  headerBox: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 0,
+    marginBottom: 16,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
+  headerTitle: {
+    fontSize: 48,
     color: '#fff',
+    fontWeight: 'bold',
     textAlign: 'center',
+    letterSpacing: 1,
+    marginTop:50
+  },
+  card: {
+    backgroundColor: '#23242a',
+    borderRadius: 22,
+    padding: 32,
+    width: '92%',
+    shadowColor: '#000',
+    shadowOpacity: 0.22,
+    shadowRadius: 16,
+    elevation: 10,
+    marginBottom: 30,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#222',
+  },
+  divider: {
+    width: '100%',
+    height: 1.5,
+    backgroundColor: '#222',
+    marginVertical: 14,
+    borderRadius: 2,
+  },
+  inputGroup: {
+    width: '100%',
     marginBottom: 10,
   },
-  subtitle: {
+  inputModern: {
+    backgroundColor: '#181A20',
+    color: '#fff',
+    borderRadius: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
     fontSize: 16,
-    color: '#E6F2FF',
+    marginBottom: 14,
+    borderWidth: 1.5,
+    borderColor: '#444',
+    width: '100%',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  buttonModern: {
+    backgroundColor: '#6ea8fe',
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 18,
+    width: '100%',
+    shadowColor: '#6ea8fe',
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  buttonModernText: {
+    color: '#222',
+    fontSize: 18,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
+  cardTitle: {
+    fontSize: 24,
+    color: '#fff',
+    fontWeight: 'bold',
+    marginBottom: 8,
     textAlign: 'center',
-    marginBottom: 40,
+  },
+  cardSubtitle: {
+    fontSize: 15,
+    color: '#bbb',
+    marginBottom: 18,
+    textAlign: 'center',
   },
   passwordHint: {
     fontSize: 12,
-    color: '#FFE6CC',
+    color: '#ffe6cc',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 18,
     paddingHorizontal: 10,
   },
   input: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
+    backgroundColor: '#23242a',
+    color: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
     fontSize: 16,
-    marginBottom: 15,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#444',
   },
   button: {
-    backgroundColor: '#FF6B35',
-    borderRadius: 8,
+    backgroundColor:"#404040",
+    borderRadius: 12,
     paddingVertical: 15,
     alignItems: 'center',
     marginTop: 10,
-    marginBottom: 20,
+    marginBottom: 18,
+    padding:30
   },
   buttonDisabled: {
-    backgroundColor: '#FF9B7A',
+    backgroundColor: '#3a4a6b',
   },
   buttonText: {
     color: '#fff',
@@ -238,9 +314,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   switchButtonText: {
-    color: '#E6F2FF',
-    fontSize: 14,
+    color: '#6ea8fe',
+    fontSize: 15,
     textDecorationLine: 'underline',
+    fontWeight: 'bold',
   },
   successText: {
     color: '#fff',
