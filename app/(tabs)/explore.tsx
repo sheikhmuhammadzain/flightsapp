@@ -1,5 +1,8 @@
+import { useAuth } from '@clerk/clerk-expo';
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
+import React from 'react';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 
 import { Collapsible } from '@/components/Collapsible';
 import { ExternalLink } from '@/components/ExternalLink';
@@ -9,6 +12,21 @@ import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 
 export default function TabTwoScreen() {
+  const { isSignedIn } = useAuth();
+
+  React.useEffect(() => {
+    if (!isSignedIn) {
+      router.replace('/SignInSignUp');
+    }
+  }, [isSignedIn]);
+
+  if (!isSignedIn) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
@@ -106,5 +124,15 @@ const styles = StyleSheet.create({
   titleContainer: {
     flexDirection: 'row',
     gap: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#0066CC',
+  },
+  loadingText: {
+    color: '#fff',
+    fontSize: 18,
   },
 });
