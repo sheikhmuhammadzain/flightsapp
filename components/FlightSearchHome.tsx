@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+import { useDebounce } from '../utils/useDebounce';
 import { ActivityIndicator, ImageBackground, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 const RAPIDAPI_KEY = Constants.expoConfig?.extra?.RAPIDAPI_KEY || '';
 
@@ -226,17 +227,21 @@ export default function FlightSearchHome() {
   const [destinationSkyId, setDestinationSkyId] = useState('');
   const [originEntityId, setOriginEntityId] = useState('');
   const [destinationEntityId, setDestinationEntityId] = useState('');
+
+  // Debounced values to limit API requests
+  const debouncedOriginCity = useDebounce(originCity, 600);
+  const debouncedDestinationCity = useDebounce(destinationCity, 600);
   // Fetch skyId/entityId for origin city
   useEffect(() => {
     const fetchOriginIds = async () => {
-      if (!originCity) {
+      if (!debouncedOriginCity || debouncedOriginCity.length < 3) {
         setOriginSkyId('');
         setOriginEntityId('');
         return;
       }
       setLoadingOrigin(true);
       try {
-        const url = `https://sky-scrapper.p.rapidapi.com/api/v1/flights/searchAirport?query=${encodeURIComponent(originCity)}&locale=en-US`;
+        const url = `https://sky-scrapper.p.rapidapi.com/api/v1/flights/searchAirport?query=${encodeURIComponent(debouncedOriginCity)}&locale=en-US`;
         const response = await fetch(url, {
           method: 'GET',
           headers: {
@@ -247,7 +252,7 @@ export default function FlightSearchHome() {
           },
         });
         const data = await response.json();
-        console.log('Origin API Response:', data);
+        console.log('Origin API Response:', JSON.stringify(data, null, 2));
         if (data.data && data.data.length > 0) {
           setOriginSkyId(data.data[0].skyId || '');
           setOriginEntityId(data.data[0].entityId || '');
@@ -261,19 +266,19 @@ export default function FlightSearchHome() {
       setLoadingOrigin(false);
     };
     fetchOriginIds();
-  }, [originCity]);
+  }, [debouncedOriginCity]);
 
   // Fetch skyId/entityId for destination city
   useEffect(() => {
     const fetchDestinationIds = async () => {
-      if (!destinationCity) {
+      if (!debouncedDestinationCity || debouncedDestinationCity.length < 3) {
         setDestinationSkyId('');
         setDestinationEntityId('');
         return;
       }
       setLoadingDestination(true);
       try {
-        const url = `https://sky-scrapper.p.rapidapi.com/api/v1/flights/searchAirport?query=${encodeURIComponent(destinationCity)}&locale=en-US`;
+        const url = `https://sky-scrapper.p.rapidapi.com/api/v1/flights/searchAirport?query=${encodeURIComponent(debouncedDestinationCity)}&locale=en-US`;
         const response = await fetch(url, {
           method: 'GET',
           headers: {
@@ -284,7 +289,7 @@ export default function FlightSearchHome() {
           },
         });
         const data = await response.json();
-        console.log('Destination API Response:', data);
+        console.log('Destination API Response:', JSON.stringify(data, null, 2));
         if (data.data && data.data.length > 0) {
           setDestinationSkyId(data.data[0].skyId || '');
           setDestinationEntityId(data.data[0].entityId || '');
@@ -298,7 +303,7 @@ export default function FlightSearchHome() {
       setLoadingDestination(false);
     };
     fetchDestinationIds();
-  }, [destinationCity]);
+  }, [debouncedDestinationCity]);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
